@@ -131,7 +131,7 @@ x_decoder.save('models/MNIST_target_decoder')
 x_pred = x_autoencoder.predict(x_test)
 b_pred = b_autoencoder.predict(b_test)
 
-# Determine Errors
+# Determine Autoencoder Errors
 x_errs = []
 b_errs = []
 for i in range(x_test.shape[0]):
@@ -142,55 +142,17 @@ for i in range(x_test.shape[0]):
 xae_err = statistics.mean(x_errs)
 bae_err = statistics.mean(b_errs)
 
-
 print('x autoencoder average relative test error')
 print(xae_err)
 
 print('b autoencoder average relative test error')
 print(bae_err)
 
-def createNonlinearPAIR(paired_input, paired_target):
-    # Make Sure Inputs Are Correct Sizes
-    if paired_target.shape[0] != paired_input.shape[0]:
-        raise Exception('Must Input Paired Input and Target Images (same number of samples).')
 
-    # Define Dimensions
-    n_train = paired_input.shape[0]
-
-    # Load Previously Made Autoencoder Networks, Trained on all Unpaired Training Samples
-    encoder_blur = keras.models.load_model('models/MNIST_e_in_test6')
-    encoder = keras.models.load_model('models/MNIST_e_ta_test6')
-    decoder = keras.models.load_model('models/MNIST_d_ta_test6')
-
-    # Encode Paired Blurred Images
-    latent_input_train = encoder_blur.predict(paired_input)
-    latent_input_train = np.transpose(latent_input_train.reshape((n_train, 147)))
-
-    # Encode Paired Original Images
-    latent_target_train = encoder.predict(paired_target)
-    latent_target_train = np.transpose(latent_target_train.reshape((n_train, 147)))
-
-    # Find Linear Mapping between Latent Variables from Paired Data
-    inverse = latent_target_train @ linalg.pinv(latent_input_train)  # zx = mi zb
-
-    # Invert Test Samples Through PAIR
-    latent_input_test = encoder_blur.predict(b_test)
-    latent_input_test = np.transpose(latent_input_test.reshape((10000, 147)))
-    latent_x_pred = inverse @ latent_input_test
-    latent_x_pred = np.transpose(latent_x_pred)
-    latent_x_pred = latent_x_pred.reshape(10000, 7, 7, 3)
-    x_pred = decoder.predict(latent_x_pred)
-
-    # Determine Error
-    errs = []
-    for i in range(x_test.shape[0]):
-        err = x_test[i, :, :] - np.squeeze(x_pred[i, :, :])
-        errs.append(linalg.norm(err) / linalg.norm(x_test[i, :, :]))
-    inv_err = statistics.mean(errs)
-
-    return inv_err
-
-
-inv_error = createNonlinearPAIR(b_train_val, x_train_val)
+# Determine PAIR Errors
+inv_error, for_error = createNonlinearPAIR(b_train_val, x_train_val, b_test, x_test)
 print('PAIR inv error')
 print(inv_error)
+
+print('PAIR for error')
+print(for_error)
