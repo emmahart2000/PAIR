@@ -2,12 +2,8 @@
 import statistics
 import skimage as ski
 import numpy as np
-import matplotlib.pyplot as plt
 from numpy import linalg
 from tensorflow import keras
-from keras import layers
-from keras.datasets import mnist
-from keras import backend as K
 
 def createNonlinearPAIR(paired_input, paired_target, input_test, target_test):
     # Make Sure Inputs Are Correct Sizes
