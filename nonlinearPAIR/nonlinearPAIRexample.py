@@ -2,7 +2,6 @@
 import statistics
 import skimage as ski
 import numpy as np
-import matplotlib.pyplot as plt
 from numpy import linalg
 from tensorflow import keras
 from keras import layers
