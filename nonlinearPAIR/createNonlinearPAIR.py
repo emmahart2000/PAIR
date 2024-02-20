@@ -10,6 +10,11 @@ def createNonlinearPAIR(paired_input, paired_target, input_test, target_test):
     if paired_target.shape[0] != paired_input.shape[0]:
         raise Exception('Must Input Paired Input and Target Images (same number of samples).')
 
+    ## Note: sizes are hardcoded, matching the architecture of the network made in nonlinearPAIRexample.py
+    # 147 = 7*7*3 dimension of the latent space
+    # 7 from original images size 28 divided by 2, divided by 2 (two convolutional layers)
+    # 3 from number of channels)
+
     # Define Dimensions
     n_train = paired_input.shape[0]
 
@@ -33,18 +38,18 @@ def createNonlinearPAIR(paired_input, paired_target, input_test, target_test):
 
     # Invert Test Samples Through PAIR
     latent_input_test = b_encoder.predict(b_test)
-    latent_input_test = np.transpose(latent_input_test.reshape((10000, 147)))
+    latent_input_test = np.transpose(latent_input_test.reshape((b_test.shape[0], 147)))
     latent_x_pred = inverse @ latent_input_test
     latent_x_pred = np.transpose(latent_x_pred)
-    latent_x_pred = latent_x_pred.reshape(10000, 7, 7, 3)
+    latent_x_pred = latent_x_pred.reshape(b_test.shap[0], 7, 7, 3)
     x_pred = decoder.predict(latent_x_pred)
 
     # Forward Propagate Test Samples Through PAIR
     latent_target_test = x_encoder.predict(x_test)
-    latent_target_test = np.transpose(latent_target_test.reshape((10000, 147)))
+    latent_target_test = np.transpose(latent_target_test.reshape((b_test.shape[0], 147)))
     latent_b_pred = forward @ latent_target_test
     latent_b_pred = np.transpose(latent_b_pred)
-    latent_b_pred = latent_b_pred.reshape(10000, 7, 7, 3)
+    latent_b_pred = latent_b_pred.reshape(b_test.shape[0], 7, 7, 3)
     b_pred = b_decoder.predict(latent_b_pred)
 
     # Determine Error
