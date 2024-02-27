@@ -7,6 +7,7 @@ from tensorflow import keras
 from keras import layers
 from keras.datasets import mnist
 from keras import backend as K
+from createNonlinearPAIR import createNonlinearPAIR
 
 # Load Original MNIST Data
 (x_train_val, y_train_val), (x_test, y_test) = mnist.load_data()
@@ -54,8 +55,8 @@ b_decoder.summary()
 
 # Create Full Autoencoder Model
 autoencoder_input = keras.Input(shape=(28, 28, 1), name='original_image')
-encoded_image = encoder_blur(autoencoder_input)
-decoded_image = decoder_blur(encoded_image)
+encoded_image = b_encoder(autoencoder_input)
+decoded_image = b_decoder(encoded_image)
 b_autoencoder = keras.Model(autoencoder_input, decoded_image, name='b_autoencoder')
 b_autoencoder.summary()
 
@@ -103,8 +104,8 @@ x_decoder.summary()
 
 # Create Full Autoencoder Model
 autoencoder_input = keras.Input(shape=(28, 28, 1), name='original_image')
-encoded_image = encoder(autoencoder_input)
-decoded_image = decoder(encoded_image)
+encoded_image = x_encoder(autoencoder_input)
+decoded_image = x_decoder(encoded_image)
 x_autoencoder = keras.Model(autoencoder_input, decoded_image, name='x_autoencoder')
 x_autoencoder.summary()
 
