@@ -5,9 +5,9 @@ import numpy as np
 from numpy import linalg
 from tensorflow import keras
 
-def createNonlinearPAIR(paired_input, paired_target, input_test, target_test):
+def createNonlinearPAIR(b_paired, x_paired, b_test, x_test):
     # Make Sure Inputs Are Correct Sizes
-    if paired_target.shape[0] != paired_input.shape[0]:
+    if x_paired.shape[0] != b_paired.shape[0]:
         raise Exception('Must Input Paired Input and Target Images (same number of samples).')
 
     ## Note: sizes are hardcoded, matching the architecture of the network made in nonlinearPAIRexample.py
@@ -16,7 +16,7 @@ def createNonlinearPAIR(paired_input, paired_target, input_test, target_test):
     # 3 from number of channels)
 
     # Define Dimensions
-    n_train = paired_input.shape[0]
+    n_train = b_paired.shape[0]
 
     # Load Previously Made Autoencoder Networks, Trained on all Unpaired Training Samples
     b_encoder = keras.models.load_model('models/MNIST_input_encoder')
@@ -25,11 +25,11 @@ def createNonlinearPAIR(paired_input, paired_target, input_test, target_test):
     x_decoder = keras.models.load_model('models/MNIST_target_decoder')
 
     # Encode Paired Blurred Images
-    latent_input_train = b_encoder.predict(paired_input)
+    latent_input_train = b_encoder.predict(b_paired)
     latent_input_train = np.transpose(latent_input_train.reshape((n_train, 147)))
 
     # Encode Paired Original Images
-    latent_target_train = x_encoder.predict(paired_target)
+    latent_target_train = x_encoder.predict(x_paired)
     latent_target_train = np.transpose(latent_target_train.reshape((n_train, 147)))
 
     # Find Linear Mappings between Latent Variables from Paired Data
@@ -41,8 +41,8 @@ def createNonlinearPAIR(paired_input, paired_target, input_test, target_test):
     latent_input_test = np.transpose(latent_input_test.reshape((b_test.shape[0], 147)))
     latent_x_pred = inverse @ latent_input_test
     latent_x_pred = np.transpose(latent_x_pred)
-    latent_x_pred = latent_x_pred.reshape(b_test.shap[0], 7, 7, 3)
-    x_pred = decoder.predict(latent_x_pred)
+    latent_x_pred = latent_x_pred.reshape(b_test.shape[0], 7, 7, 3)
+    x_pred = x_decoder.predict(latent_x_pred)
 
     # Forward Propagate Test Samples Through PAIR
     latent_target_test = x_encoder.predict(x_test)
@@ -59,8 +59,8 @@ def createNonlinearPAIR(paired_input, paired_target, input_test, target_test):
         inv_err = x_test[i, :, :] - np.squeeze(x_pred[i, :, :])
         inv_errs.append(linalg.norm(inv_err) / linalg.norm(x_test[i, :, :]))
         for_err = b_test[i, :, :] - np.squeeze(b_pred[i, :, :])
-        for_errs.append(linalg.norm(for_err) / linalg.norm(b_test[i, :, ;]))
-    inv_err = statistics.mean(errs)
-    for_err = statistics.mean(errs)
+        for_errs.append(linalg.norm(for_err) / linalg.norm(b_test[i, :, :]))
+    inv_err = statistics.mean(inv_errs)
+    for_err = statistics.mean(for_errs)
 
     return inv_err, for_err
