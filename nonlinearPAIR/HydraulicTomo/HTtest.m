@@ -1,4 +1,6 @@
-%% Load Existing Hydrolic Tomography Data
+%% Create HT Data
+
+%% Load Existing Hydrolic Tomography Data and Print to JPGs
 for i=1:100
         load(append('data/inputHT',string(i),'.mat'))
         load(append('data/targetHT',string(i),'.mat'))
