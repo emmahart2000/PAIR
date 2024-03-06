@@ -5,7 +5,7 @@ import numpy as np
 from numpy import linalg
 from tensorflow import keras
 
-def createNonlinearPAIR(b_paired, x_paired, b_test, x_test):
+def createHTPAIR(b_paired, x_paired, b_test, x_test):
     # Make Sure Inputs Are Correct Sizes
     if x_paired.shape[0] != b_paired.shape[0]:
         raise Exception('Must Input Paired Input and Target Images (same number of samples).')
