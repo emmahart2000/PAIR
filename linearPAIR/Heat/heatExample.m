@@ -11,22 +11,37 @@
 %% Create Data
 rng(21)
 
-N = 100;
-A = heat(N);
-K = 1000;
+N = 0;                 % Size 50 x 1 Input/Target
+A = heat(N);           % Heat Example
+% [A,~,~] = svd(A);      % Orthogonal Example
+% A = randn(N,N);        % Invertible Example
+% A = A'*A;              % Invertible SPD Example
+K = 1000;              % Number of Samples
  
 t = linspace(0,1,N)'/2; Xtrue = zeros(N,K); Bnoisy = zeros(N,K); Btrue = zeros(N,K);
-minNoise = 1e-4; maxNoise = 1e-2;
+% minNoise = 1e-4; maxNoise = 1e-4;   % Add Noise
+minNoise = 0; maxNoise = 0;         % No Noise
 noiseLevel = minNoise + (maxNoise-minNoise)*rand(1,K);
 
 for k = 1:K
       r = randi(10,3) - 0.5*rand(3,1);
       x = sin(r(1)*2*pi*t) + sin(r(2)*2*pi*t);
       Xtrue(:,k) = x + abs(min(x));
+%       Xtrue(:,k) = rand(N,1);     % Full Rank Data Matrix
   Btrue(:,k) = A*Xtrue(:,k);
   Bnoisy(:,k) = Btrue(:,k) + noiseLevel(k)*randn(N,1);
 end
 Adagger = pinv(A);
+sigma = 1e-4;
+Bmu = mean(Bnoisy,2);
+Bcov = cov(Bnoisy')+sigma*eye(N);
+Xmu = mean(Xtrue,2);
+Xcov = cov(Xtrue')+sigma*eye(N);
+LB = chol(Bcov)';
+LX = chol(Xcov)';
+NB = [LB Bmu];
+NX = [LX Xmu];
+
 
 %% Take Necessary SVDs
 [UX, SX, VX] = svd(Xtrue);
@@ -35,7 +50,9 @@ Adagger = pinv(A);
 [UAdag, SAdag, VAdag] = svd(Adagger);
 
 %% For Different Ranks, Construct AEs and PAIR Mappings 
-for r=1:100
+for r=1:N
+%     Mf_{r} = UB(:,1:r)' * A * NX * pinv(UX(:,1:r)'*NX);
+%     Mi_{r} = UX(:,1:r)' * (A\(NB*pinv(UB(:,1:r)'*NB)));
     Mf_{r} = SB(1:r,:)*VB'*VX*[diag(1./diag(SX(1:r,1:r)));zeros(K-r,r)];
     Mi_{r} = SX(1:r,:)*VX'*VB*[diag(1./diag(SB(1:r,1:r)));zeros(K-r,r)];
     [~, Mf_S{r}, ~] = svd(Mf_{r});
@@ -74,25 +91,25 @@ xlabel('Singular Values')
 title('Data')
 
 nexttile
-for r=1:100
+for r=1:N
     semilogy(diag(Mf_S{r}))
     hold on
 end
 xlabel('Singular Values for Varied r')
 title('Mf')
-xlim([0,100])
+xlim([0,N])
 
 nexttile
-for r=1:100
+for r=1:N
     semilogy(diag(Mi_S{r}))
     hold on
 end
 xlabel('Singular Values for Varied r')
 title('Mi')
-xlim([0,100])
+xlim([0,N])
 
 nexttile
-for r=1:100
+for r=1:N
     semilogy(diag(FOR_S{r}))
     hold on
 end
@@ -101,20 +118,28 @@ title('PAIR FORWARD')
 semilogy(diag(SA),'k')
 
 nexttile
-for r=1:100
+for r=1:N
     semilogy(diag(INV_S{r}))
     hold on
 end
 xlabel('Singular Values for Varied r')
 title('PAIR INVERSE')
 semilogy(sort(1./diag(SA),'descend'),'k')
-
+%% Larger Figure
+figure(2)
+for r=1:N
+    semilogy(diag(FOR_S{r}))
+    hold on
+end
+xlabel('Singular Values for Varied r')
+title('PAIR FORWARD')
+semilogy(diag(SA),'k')
 %% Visualizing INVERSE and FORWARD results
-tt = linspace(0,1,100);
+tt = linspace(0,1,N);
 idx = [25, 6, 35];
 
-r = 10;
-figure(10)
+r = round(N/2);
+figure(3)
 clf
 plot(tt,FOR_{r}*Xtrue(:,idx(1)), '--','Color', 'blue')
 hold on
@@ -131,7 +156,7 @@ plot(0,0,'k-')
 plot(0,0,'k--')
 legend('','','','','','','True','Predicted','Interpreter','latex','Location','Northwest')
 
-figure(11)
+figure(4)
 clf
 plot(tt,INV_{r}*Bnoisy(:,idx(1)), '--','Color', 'blue')
 hold on
@@ -147,4 +172,7 @@ plot(0,0,'k-')
 plot(0,0,'k--')
 legend('','','','','','','True','Predicted','Interpreter','latex')
 title('True and Predicted Parameters','Interpreter','latex')
+
+
+
 
