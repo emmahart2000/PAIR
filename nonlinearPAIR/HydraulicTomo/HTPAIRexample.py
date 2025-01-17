@@ -1,28 +1,30 @@
 # Import Libraries
 import statistics
-import skimage as ski
+from PIL import Image
 import numpy as np
 from numpy import linalg
 from tensorflow import keras
 from keras import layers
-from keras.datasets import mnist
 from keras import backend as K
-from createNonlinearPAIR import createNonlinearPAIR
+from createHTPAIR import createHTPAIR
 
-# Load Original MNIST Data
-(x_train_val, y_train_val), (x_test, y_test) = mnist.load_data()
-x_train_val = x_train_val.astype('float32') / 255.
-x_test = x_test.astype('float32') / 255.
-x_train_val = np.reshape(x_train_val, (len(x_train_val), 28, 28))
-x_test = np.reshape(x_test, (len(x_test), 28, 28))
+# Load HT Input Images
+n_imgs = 10000
+b_all = np.zeros((n_imgs, 100, 100), dtype=np.uint8)
+x_all = np.zeros((n_imgs, 20, 19), dtype=np.uint8)
 
-# Create Blurred MNIST Data
-b_train_val = np.zeros((x_train_val.shape[0], x_train_val.shape[1], x_train_val.shape[2]))
-b_test = np.zeros((x_test.shape[0], x_test.shape[1], x_test.shape[2]))
-for imageind in range(x_train_val.shape[0]):
-    b_train_val[imageind, :, :] = ski.filters.gaussian(x_train_val[imageind], sigma=(2, 2), truncate=3, channel_axis=-1)
-for imageind in range(x_test.shape[0]):
-    b_test[imageind, :, :] = ski.filters.gaussian(x_test[imageind], sigma=(2, 2), truncate=3, channel_axis=-1)
+for i in range(1,n_imgs+1):
+    b_filename = f"images/input{i}.png"
+    x_filename = f"images/target{i}.png"
+    b_img = Image.open(b_filename)
+    x_img = Image.open(x_filename)
+    b_all[i-1] = np.array(b_img) 
+    x_all[i-1] = np.array(x_img)
+
+b_train_val = b_all[0:9000,:,:]
+x_train_val = x_all[0:9000,:,:]
+b_test = b_all[9000:10001,:,:]
+x_test = x_all[9000:10001,:,:]
 
 # Create PAIR Autoencoders (Unsupervised Task)
 # Blurred Autoencoder--------------------------------------------------------------------------------------------------
