@@ -10,14 +10,18 @@
 % %%% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
 
 %% Create or Load Phantoms
-
+tic
 if isfile('SheppLogan64data.mat')
     load('SheppLogan64data.mat')
 else
-    rng(0)                                % set seed
-    n = 64;                               % image size
-    nimgs = 18000;                        % number of images
-    
+    rng(0)                           % set seed
+    n = 64;                          % image size
+    nb = 12000;                      % number of independent sinograms
+    nx = 10000;                       % number of independent phantoms
+    nsup = 10000;                     % number of sino/phants for supervised task
+    ntest = 2000;                    % number of paired sino/phants testing
+    nimgs = nx+nb+nsup+ntest;      % number of images (x and b)
+
     % Create Shepp Logan Phantoms
     X = randomSheppLogan(n,{'pad', 0; 'M', nimgs});
     
@@ -30,33 +34,40 @@ else
     save('SheppLogan64A.mat', 'A')
     
     % Create Sinograms from Phantoms and Forward Operator, Add Noise
-    noiseLevel = 0.05 ;                   % noise level
-    for j = 1:nimgs
-        Btrue(:,j) = A*X(:,j);            % create sinogram from phantom
-        B(:,j) = Btrue(:,j) + WhiteNoise(Btrue(:,j),noiseLevel);
+    noiseLevel = 0.05 ;                    % noise level
+    Btrue = zeros(3240, nb+nsup+ntest);    % preallocate Btrue
+    B = zeros(3240,nb+nsup+ntest);         % preallocate B   
+    for j = nx+1:nimgs
+        Btrue(:,j-nx) = A*X(:,j);            % create sinogram from phantom
+        B(:,j-nx) = Btrue(:,j-nx) + WhiteNoise(Btrue(:,j-nx),noiseLevel);
     end
 
     % Divide into Testing and Training, Normalize
-    ntrain = 16000;                       % number of images for training
-    Btrain = B(:,1:ntrain);               % split training
-    Bmin = min(Btrain(:));                
+    Btrain = B(:,1:nb+nsup);              % split training
+    Bmin = min(Btrain(:));                % normalize             
     Bmax = max(Btrain(:));
-    B = (B - Bmin)/(Bmax-Bmin);           % normalize
+    B = (B - Bmin)/(Bmax-Bmin);
     save('SheppLogan64data.mat','X','B','Btrue','Bmin','Bmax')
 end
 
 %% Define Test Space and Training/Testing
-r_xs = 20:20:3240;              % latent dimensions for targets
-r_bs = 20:20:3240;              % latent dimensions for inputs
+r_xs = [1,2,3,4,5,100,500,1000,2000,3000];              % latent dimensions for targets
+r_bs = [1,2,3,4,5,100,500,1000,2000,3000];              % latent dimensions for inputs
+% r_xs = 50:50:3200;              % latent dimensions for targets
+% r_bs = 50:50:3200;              % latent dimensions for inputs
+% r_xs = 20:20:3240;              % latent dimensions for targets
+% r_bs = 20:20:3240;              % latent dimensions for inputs
 
-Xtrain_sup = X(:,1:8000);       % targets for supervised task (latent maps)
-Xtrain_uns = X(:,8001:16000);   % targets for unsupervised task (AEs)
-Xtest = X(:,16001:18000);       % targets for testing
-Btrain_sup = B(:,1:8000);       % inputs for supervised task (latent maps)
-Btrain_uns = B(:,8001:16000);   % inputs for unsupervised task (AEs)
-Btest = B(:,16001:18000);       % inputs for testing
+% X is stored like (Just X)(Just B)(X and B Pairs)(Testing X and B Pairs)
+Xtrain_uns = X(:,1:nx);               % targets for unsupervised task (AEs)
+Xtrain_sup = X(:,nx+nb+1:nx+nb+nsup); % targets for supervised task (latent maps)
+Xtest = X(:,nimgs-ntest+1:nimgs);     % targets for testing
 
-printimgs = 0;                  % printing option
+Btrain_uns = B(:,1:nb);               % inputs for unsupervised task (AEs)
+Btrain_sup = B(:,nb+1:nb+nsup);       % inputs for supervised task (latent maps)
+Btest = B(:,nb+nsup+1:nb+nsup+ntest); % inputs for testing
+
+printimgs = 1;                        % printing option
 
 %% Construct and Evaluate Linear PAIR for Different Latent Dimensions
 
@@ -112,8 +123,9 @@ else
         [U,S,V] = svd(full(A));    % compute SVD of forward map A
         save('SheppLoganASVD.mat','U','S','V')
     end
-    B_test = Btest*(Bmax-Bmin) + Bmin; % unnormalize
-    ranks = 20:20:3240;            % define test space for TSVD
+    B_test = Btest*(Bmax-Bmin) + Bmin; % unnormalize            
+    ranks =  50:50:3200;            % define test space for TSVD
+    %     ranks = 20:20:3240;
     for j = 1:length(ranks)
         r = ranks(j);
         Ur = U(:,1:r);             % take first r left singular vectors
@@ -130,19 +142,20 @@ save('SheppLogan64TSVDerror.mat','TSVDinverr','TSVDforerr')
 end
 
 %% Graph Results
-
 figure(1)
 clf
-plot(ranks,BAEerr, '-', 'LineWidth',2)
+set(0, 'DefaultAxesFontName', 'CMU Serif');
+set(0, 'DefaultTextFontName', 'CMU Serif');
+plot(ranks,XAEerr, '-', 'LineWidth',1.5)
 hold on
-plot(ranks,XAEerr, '--', 'LineWidth',2)
-plot(ranks,PAIRinverr, ':', 'LineWidth',2)
-plot(ranks,PAIRforerr, '-', 'LineWidth',2)
-plot(ranks,TSVDinverr,'-*', 'LineWidth',2,'MarkerSize',5)
-plot(ranks,TSVDforerr,'-o', 'LineWidth',2,'MarkerSize',1)
-legend('Input Autoencoder', 'Target Autoencoder', 'PAIR Inversion', 'PAIR Forward', 'TSVD Inversion', 'TSVD Forward', 'Location', 'NW','NumColumns',2)
+plot(ranks,PAIRforerr, ':', 'LineWidth',1.5)
+plot(ranks,TSVDforerr,'-*', 'LineWidth',1.5,'MarkerSize',3)
+plot(ranks,BAEerr, '--', 'LineWidth',1.5,'MarkerSize',3)
+plot(ranks,PAIRinverr, '-.', 'LineWidth',1.5)
+plot(ranks,TSVDinverr,'-o', 'LineWidth',1.5,'MarkerSize',2)
+legend('X Autoencoder', 'PAIR Forward', 'TSVD Forward', 'B Autoencoder', 'PAIR Inverse', 'TSVD Inverse', 'Location', 'NW','NumColumns',2)
 xlabel('Rank')
 ylabel('Average Relative Error')
 xlim([0,3240])
 ylim([0,1])
-
+toc
