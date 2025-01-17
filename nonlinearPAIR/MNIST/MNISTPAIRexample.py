@@ -7,7 +7,7 @@ from tensorflow import keras
 from keras import layers
 from keras.datasets import mnist
 from keras import backend as K
-from createNonlinearPAIR import createNonlinearPAIR
+from createMNISTPAIR import createNonlinearPAIR
 
 # Load Original MNIST Data
 (x_train_val, y_train_val), (x_test, y_test) = mnist.load_data()
