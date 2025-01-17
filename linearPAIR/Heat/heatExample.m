@@ -1,6 +1,6 @@
 % %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%% 
 % %
-% % Linear PAIR Example: 100 Heat Example
+% % Linear PAIR Example: Heat Example
 % %
 % %%% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %% %%
 % Creates linear PAIR for a toy heat problem.  Calculates and compares 
@@ -11,24 +11,25 @@
 %% Create Data
 rng(21)
 
-N = 0;                 % Size 50 x 1 Input/Target
-A = heat(N);           % Heat Example
+N = 50;                  % Size 50 x 1 Input/Target
+A = heat(N);             % Heat Example
 % [A,~,~] = svd(A);      % Orthogonal Example
 % A = randn(N,N);        % Invertible Example
 % A = A'*A;              % Invertible SPD Example
 K = 1000;              % Number of Samples
  
 t = linspace(0,1,N)'/2; Xtrue = zeros(N,K); Bnoisy = zeros(N,K); Btrue = zeros(N,K);
-% minNoise = 1e-4; maxNoise = 1e-4;   % Add Noise
-minNoise = 0; maxNoise = 0;         % No Noise
+minNoise = 1e-4; maxNoise = 1e-4;   % Add Noise
+% minNoise = 0; maxNoise = 0;         % No Noise
 noiseLevel = minNoise + (maxNoise-minNoise)*rand(1,K);
 
 for k = 1:K
       r = randi(10,3) - 0.5*rand(3,1);
       x = sin(r(1)*2*pi*t) + sin(r(2)*2*pi*t);
       Xtrue(:,k) = x + abs(min(x));
-%       Xtrue(:,k) = rand(N,1);     % Full Rank Data Matrix
+      Xtrue(:,k) = rand(N,1);     % Full Rank Data Matrix
   Btrue(:,k) = A*Xtrue(:,k);
+%   Noise(:,k)
   Bnoisy(:,k) = Btrue(:,k) + noiseLevel(k)*randn(N,1);
 end
 Adagger = pinv(A);
@@ -138,7 +139,7 @@ semilogy(diag(SA),'k')
 tt = linspace(0,1,N);
 idx = [25, 6, 35];
 
-r = round(N/2);
+r = round(2*N/3);
 figure(3)
 clf
 plot(tt,FOR_{r}*Xtrue(:,idx(1)), '--','Color', 'blue')
